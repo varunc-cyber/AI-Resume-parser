@@ -3,6 +3,11 @@ import mongoose from 'mongoose';
 let isConnected = false;
 
 export async function connectDB() {
+  if (mongoose.connection.readyState >= 1) {
+    isConnected = true;
+    return;
+  }
+
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-resume-parser';
 
   try {

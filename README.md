@@ -105,6 +105,7 @@ You can open [`vanilla-html-version/index.html`](file:///e:/AI-Resume%20parser/v
 │           └── Footer.jsx     # Footer
 │
 ├── backend/                   # Express + MongoDB Backend API
+│   ├── vercel.json            # Vercel serverless function configuration (@vercel/node)
 │   ├── server.js              # Express app entry point & server bootstrap
 │   ├── .env                   # Local environment variables (PORT, MONGODB_URI)
 │   ├── .env.example           # Environment template
@@ -129,3 +130,26 @@ You can open [`vanilla-html-version/index.html`](file:///e:/AI-Resume%20parser/v
     ├── style.css
     └── app.js
 ```
+
+---
+
+## 🌐 Deploying to Vercel (2 Separate Projects)
+
+### Project 1: Backend API
+1. On Vercel, click **Add New -> Project** and import this repository.
+2. Under **Root Directory**, click **Edit** and select `backend`.
+3. Keep the default build settings (`vercel.json` automatically sets up `@vercel/node`).
+4. In **Environment Variables**, add:
+   - `MONGODB_URI`: Your MongoDB Atlas connection string (e.g., `mongodb+srv://...`)
+   - `CLIENT_URL`: `https://your-frontend-project.vercel.app` (or your frontend domain)
+   - `NODE_ENV`: `production`
+5. Click **Deploy**. Note your backend URL (e.g. `https://ai-resume-parser-backend.vercel.app`).
+
+### Project 2: Frontend App
+1. On Vercel, click **Add New -> Project** and import the same repository.
+2. Under **Root Directory**, click **Edit** and select `frontend`.
+3. Framework Preset: **Vite** (automatically detected from `frontend/vercel.json`).
+4. In **Environment Variables**, add:
+   - `VITE_API_BASE_URL`: `https://ai-resume-parser-backend.vercel.app/api` (using your backend URL from Step 1)
+5. Click **Deploy**.
+

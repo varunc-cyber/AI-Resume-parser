@@ -25,7 +25,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    if (
+      !origin || 
+      allowedOrigins.includes(origin) || 
+      origin.endsWith('.vercel.app') ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    ) {
       return callback(null, true);
     }
     return callback(null, true);
@@ -66,16 +71,18 @@ app.use('/api', apiRoutes);
 // Global Error Handler
 app.use(errorHandler);
 
-// Start HTTP Server
-const server = app.listen(PORT, () => {
-  console.log(`=============================================`);
-  console.log(`🚀 AI Resume Parser Express Server is running!`);
-  console.log(`📍 URL: http://localhost:${PORT}`);
-  console.log(`📡 Endpoints:`);
-  console.log(`   - POST /api/resume/compare (Resume PDF + JD)`);
-  console.log(`   - GET  /api/resume/history`);
-  console.log(`   - GET  /api/health`);
-  console.log(`=============================================`);
-});
+// Start HTTP Server (Only in local development / standalone mode, not on Vercel Serverless)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`=============================================`);
+    console.log(`🚀 AI Resume Parser Express Server is running!`);
+    console.log(`📍 URL: http://localhost:${PORT}`);
+    console.log(`📡 Endpoints:`);
+    console.log(`   - POST /api/resume/compare (Resume PDF + JD)`);
+    console.log(`   - GET  /api/resume/history`);
+    console.log(`   - GET  /api/health`);
+    console.log(`=============================================`);
+  });
+}
 
 export default app;
