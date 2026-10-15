@@ -6,7 +6,7 @@ export default function Faq() {
 
   const faqs = [
     {
-      q: 'How does the AI Resume Parser calculate my ATS score?',
+      q: 'How does the AI Resume Parser calculate my ATS score out of 100?',
       a: 'The scoring engine compares your extracted resume text against an industry-standard skill dictionary for your target role. Skills marked "Critical" carry higher weights than "Recommended" or "Nice-to-Have" skills. The algorithm also factors in readability, formatting markers, and technical keyword density.'
     },
     {

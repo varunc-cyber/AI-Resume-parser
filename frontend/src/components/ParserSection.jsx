@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { 
   Upload, FileText, CheckCircle2, XCircle, AlertTriangle, 
   Sparkles, RefreshCw, Eye, ArrowUpRight, Check, AlertCircle, FileCheck,
-  Briefcase
+  Briefcase, Copy, Database, Server, History
 } from 'lucide-react';
 import { TARGET_ROLES, SAMPLE_RESUMES } from '../data/rolesData';
 import { 
@@ -13,6 +13,11 @@ import {
   extractSkillsFromJobDescription, 
   SAMPLE_CUSTOM_JD 
 } from '../utils/pdfParser';
+import {
+  checkBackendHealth,
+  compareResumeWithBackend,
+  fetchComparisonHistory
+} from '../services/resumeApi';
 
 export default function ParserSection({ 
   activePresetId, 
@@ -31,9 +36,46 @@ export default function ParserSection({
   const [showTextModal, setShowTextModal] = useState(false);
   const [extractedRawText, setExtractedRawText] = useState('');
   const [currentFileMeta, setCurrentFileMeta] = useState(null);
+  const [copiedSummary, setCopiedSummary] = useState(false);
+
+  // Backend & MongoDB state
+  const [backendConnected, setBackendConnected] = useState(false);
+  const [mongoConnected, setMongoConnected] = useState(false);
+  const [historyItems, setHistoryItems] = useState([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const fileInputRef = useRef(null);
   const timerRef = useRef(null);
+
+  // Check backend health on mount
+  useEffect(() => {
+    checkBackendHealth()
+      .then((data) => {
+        if (data && data.status === 'UP') {
+          setBackendConnected(true);
+          setMongoConnected(Boolean(data.mongoConnected));
+        } else {
+          setBackendConnected(false);
+          setMongoConnected(false);
+        }
+      })
+      .catch(() => {
+        setBackendConnected(false);
+        setMongoConnected(false);
+      });
+  }, []);
+
+  const handleCopySummary = () => {
+    if (!analysisData) return;
+    const presentList = analysisData.presentSkills?.map((s) => s.name).join(', ') || 'None';
+    const missingList = analysisData.missingSkills?.map((s) => s.name).join(', ') || 'None';
+    const textToCopy = `AI Resume Parser Report\nFile: ${analysisData.fileName}\nScore: ${analysisData.score}/100 (${analysisData.verdict})\n\nSkills Present (${analysisData.presentSkills?.length || 0}):\n${presentList}\n\nSkills Missing (${analysisData.missingSkills?.length || 0}):\n${missingList}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(textToCopy);
+    }
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2000);
+  };
   const parsingSteps = [
     'Parsing PDF text streams...',
     'Extracting candidate competencies & experience...',
@@ -145,6 +187,16 @@ export default function ParserSection({
     };
   }, [activePresetId]);
 
+  const handleLoadHistory = async () => {
+    try {
+      const items = await fetchComparisonHistory(20);
+      setHistoryItems(items);
+      setShowHistoryModal(true);
+    } catch (err) {
+      console.warn('Failed to fetch history:', err.message);
+    }
+  };
+
   const handleFileUpload = async (file) => {
     if (!file) return;
 
@@ -161,21 +213,48 @@ export default function ParserSection({
     }, 320);
 
     try {
-      const text = await extractTextFromPDF(file);
-      setExtractedRawText(text);
+      // 1. Try comparing via Express backend API
+      let backendResult = null;
+      try {
+        const jobDescTitle = selectedRole === 'custom'
+          ? 'Custom Job Description'
+          : TARGET_ROLES.find((r) => r.id === selectedRole)?.name || 'Full Stack Engineer';
+
+        backendResult = await compareResumeWithBackend({
+          file,
+          jobDescription: customJdText,
+          roleId: selectedRole,
+          jobDescriptionTitle: jobDescTitle
+        });
+
+        if (backendResult) {
+          setBackendConnected(true);
+          setMongoConnected(Boolean(backendResult.savedToDb));
+        }
+      } catch (networkErr) {
+        console.warn('Express backend not reachable, using local fallback:', networkErr.message);
+      }
+
+      // 2. Fallback to client-side parsing if backend didn't return
+      if (!backendResult) {
+        const text = await extractTextFromPDF(file);
+        setExtractedRawText(text);
+
+        const targetRoleToUse = selectedRole === 'custom' && customRoleObj ? customRoleObj : null;
+        backendResult = analyzeResume(text, selectedRole, targetRoleToUse, file.name);
+      } else {
+        setExtractedRawText(backendResult.extractedResumeText || '');
+      }
 
       setTimeout(() => {
         clearInterval(stepInterval);
         setIsParsing(false);
+        setAnalysisData(backendResult);
 
-        const targetRoleToUse = selectedRole === 'custom' && customRoleObj ? customRoleObj : null;
-        const result = analyzeResume(text, selectedRole, targetRoleToUse, file.name);
-        setAnalysisData(result);
-
-        if (result.score >= 80) {
+        if (backendResult.score >= 80) {
           triggerConfetti();
         }
-      }, 1300);
+      }, 950);
     } catch (err) {
       console.error(err);
       clearInterval(stepInterval);
@@ -287,6 +366,20 @@ export default function ParserSection({
               >
                 <Briefcase size={14} color="#818cf8" />
                 <span>{selectedRole === 'custom' ? 'Custom JD Active' : 'Enter Custom JD'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{
+                  fontSize: '0.85rem',
+                  padding: '0.5rem 0.95rem'
+                }}
+                onClick={handleLoadHistory}
+                title="View previous resume comparisons saved in MongoDB"
+              >
+                <Database size={14} color={mongoConnected ? '#10b981' : '#818cf8'} />
+                <span>DB History</span>
               </button>
             </div>
 
@@ -420,7 +513,7 @@ export default function ParserSection({
               <div className="parsing-loader-wrap">
                 <div className="loading-spinner" />
                 <h3 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>
-                  Analyzing Resume with AI Engine
+                  Analyzing Resume with AI Resume Parser Engine...
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                   {parsingSteps[parsingStep]}
@@ -704,6 +797,12 @@ export default function ParserSection({
                     <FileCheck size={18} color="#818cf8" />
                     <span>Analyzing: <strong>{analysisData.fileName}</strong></span>
                     {currentFileMeta?.size && <span style={{ color: 'var(--text-muted)' }}>({currentFileMeta.size})</span>}
+                    {analysisData.savedToDb && (
+                      <span className="badge-pill badge-success" style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', marginLeft: '0.35rem' }}>
+                        <Database size={11} />
+                        <span>Saved to MongoDB</span>
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -729,6 +828,16 @@ export default function ParserSection({
                         <span>View Parsed Text</span>
                       </button>
                     )}
+
+                    <button 
+                      className="btn-secondary" 
+                      onClick={handleCopySummary}
+                      style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                      title="Copy Score & Skills summary to clipboard"
+                    >
+                      {copiedSummary ? <Check size={15} color="#10b981" /> : <Copy size={15} color="#818cf8" />}
+                      <span>{copiedSummary ? 'Copied!' : 'Copy Summary'}</span>
+                    </button>
 
                     <button 
                       className="btn-primary" 
@@ -763,6 +872,87 @@ export default function ParserSection({
             </div>
             <div className="modal-body">
               {extractedRawText || 'No text content available.'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MongoDB History Modal */}
+      {showHistoryModal && (
+        <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Database size={18} color="#818cf8" />
+                <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                  Recent Resume Comparisons (MongoDB)
+                </h4>
+              </div>
+              <button 
+                onClick={() => setShowHistoryModal(false)}
+                style={{ color: 'var(--text-secondary)', padding: '0.25rem' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+              {historyItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-secondary)' }}>
+                  <Database size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.5 }} />
+                  <p>No comparisons saved in MongoDB yet.</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Upload a resume and job description to compare and save to MongoDB automatically.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {historyItems.map((item) => (
+                    <div 
+                      key={item._id}
+                      style={{
+                        padding: '0.85rem 1rem',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {item.fileName}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          Target: {item.jobDescriptionTitle || 'Standard Role'} • {new Date(item.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span 
+                          style={{ 
+                            fontSize: '1.1rem', 
+                            fontWeight: 700, 
+                            color: item.score >= 80 ? '#10b981' : item.score >= 60 ? '#f59e0b' : '#f43f5e' 
+                          }}
+                        >
+                          {item.score}/100
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                          onClick={() => {
+                            setAnalysisData(item);
+                            setShowHistoryModal(false);
+                          }}
+                        >
+                          Load
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

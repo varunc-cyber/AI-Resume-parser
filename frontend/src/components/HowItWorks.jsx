@@ -32,7 +32,7 @@ export default function HowItWorks() {
             Zero Friction Workflow
           </span>
           <h2 className="section-title">
-            How the <span className="gradient-text">AI Parser</span> Operates
+            How <span className="gradient-text">AI Resume Parser</span> Works
           </h2>
           <p className="section-desc">
             Four simple steps from unoptimized draft to ATS-ready resume.

@@ -17,7 +17,7 @@ export default function Hero({ onUploadClick, onLoadSample }) {
         </h1>
 
         <p className="hero-subtitle">
-          Stop guessing why your applications go unanswered. Drop your PDF resume below to instantly reveal your ATS score, detected skills, and the critical keywords you're missing.
+          Upload your PDF resume below to instantly get your score out of 100, see what skills are present, and discover what critical skills are missing before submitting applications.
         </p>
 
         <div className="hero-cta-group">
