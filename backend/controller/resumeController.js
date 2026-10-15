@@ -95,7 +95,9 @@ export class ResumeController {
       status: 'UP',
       service: 'AI Resume Parser Backend API',
       timestamp: new Date().toISOString(),
-      mongoConnected: isDbConnected()
+      mongoConnected: isDbConnected(),
+      geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      model: process.env.GEMINI_MODEL || 'gemini-flash-latest'
     });
   }
 }

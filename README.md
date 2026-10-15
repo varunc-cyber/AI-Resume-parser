@@ -133,23 +133,54 @@ You can open [`vanilla-html-version/index.html`](file:///e:/AI-Resume%20parser/v
 
 ---
 
-## 🌐 Deploying to Vercel (2 Separate Projects)
+## 🌐 Deploying to Vercel (Multi-Service Project)
 
-### Project 1: Backend API
-1. On Vercel, click **Add New -> Project** and import this repository.
-2. Under **Root Directory**, click **Edit** and select `backend`.
-3. Keep the default build settings (`vercel.json` automatically sets up `@vercel/node`).
-4. In **Environment Variables**, add:
-   - `MONGODB_URI`: Your MongoDB Atlas connection string (e.g., `mongodb+srv://...`)
-   - `CLIENT_URL`: `https://your-frontend-project.vercel.app` (or your frontend domain)
+This repository is configured to deploy as a **single Vercel project with multiple services** using the root [`vercel.json`](file:///e:/AI-Resume%20parser/vercel.json):
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "backend",
+      "framework": "express",
+      "entrypoint": "server.js"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": { "service": "backend" }
+    },
+    {
+      "source": "/api",
+      "destination": { "service": "backend" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "frontend" }
+    }
+  ]
+}
+```
+
+### Benefits of Vercel Services Deployment:
+1. **Single Domain**: Both frontend and backend share the exact same domain (e.g., `https://ai-resume-parser.vercel.app`).
+2. **Zero CORS Issues**: Browser requests from the frontend to `/api/*` are same-origin.
+3. **Simpler Environment Variables**: No need to configure `VITE_API_BASE_URL` with external URLs—the default relative `/api` paths work automatically.
+4. **Local Development with `vercel dev`**: Run `vercel dev` from the repository root to start all services together with identical routing.
+
+### Deployment Steps:
+1. Push this repository to GitHub, GitLab, or Bitbucket.
+2. In the Vercel Dashboard, click **Add New -> Project** and import the repository.
+3. Leave **Root Directory** as `./` (repository root). Vercel will detect `vercel.json` with the `services` block.
+4. In **Project Settings -> Environment Variables**, add your backend database credentials:
+   - `MONGODB_URI`: Your MongoDB Atlas connection URI (`mongodb+srv://...`)
    - `NODE_ENV`: `production`
-5. Click **Deploy**. Note your backend URL (e.g. `https://ai-resume-parser-backend.vercel.app`).
+5. Click **Deploy**. Both the Vite frontend and Express backend will build and deploy under your project's single URL.
 
-### Project 2: Frontend App
-1. On Vercel, click **Add New -> Project** and import the same repository.
-2. Under **Root Directory**, click **Edit** and select `frontend`.
-3. Framework Preset: **Vite** (automatically detected from `frontend/vercel.json`).
-4. In **Environment Variables**, add:
-   - `VITE_API_BASE_URL`: `https://ai-resume-parser-backend.vercel.app/api` (using your backend URL from Step 1)
-5. Click **Deploy**.
 

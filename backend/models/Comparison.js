@@ -37,6 +37,14 @@ const comparisonSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  summary: {
+    type: String,
+    default: ''
+  },
+  engine: {
+    type: String,
+    default: 'Gemini AI'
+  },
   presentSkills: [skillItemSchema],
   missingSkills: [skillItemSchema],
   breakdown: {

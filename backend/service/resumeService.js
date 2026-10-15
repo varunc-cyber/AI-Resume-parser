@@ -1,5 +1,6 @@
 import { Comparison } from '../models/Comparison.js';
 import { isDbConnected } from '../config/db.js';
+import { GeminiService } from './geminiService.js';
 import { 
   extractTextFromPdfBuffer, 
   extractSkillsFromJobDescription, 
@@ -46,8 +47,27 @@ export class ResumeService {
       }
     }
 
-    // 3. Perform ATS keyword comparison and calculate score
-    const comparisonResult = compareResumeWithSkills(resumeText, targetSkills, derivedRoleTitle);
+    // 3. Perform ATS analysis using Gemini AI with local heuristic fallback
+    let comparisonResult = null;
+    try {
+      comparisonResult = await GeminiService.analyzeResume({
+        resumeText,
+        jobDescriptionText,
+        roleTitle: derivedRoleTitle,
+        targetSkills
+      });
+    } catch (aiErr) {
+      console.warn('[Gemini AI] Service encountered error:', aiErr.message);
+    }
+
+    if (!comparisonResult) {
+      console.log('[ResumeService] Using local ATS comparison engine fallback.');
+      comparisonResult = compareResumeWithSkills(resumeText, targetSkills, derivedRoleTitle);
+      comparisonResult.engine = 'Local ATS Parser';
+      comparisonResult.summary = `Candidate scored ${comparisonResult.score}/100 against ${derivedRoleTitle}. Found ${comparisonResult.presentSkills.length} matching skills and identified ${comparisonResult.missingSkills.length} key skill gaps.`;
+    } else {
+      console.log(`[ResumeService] Resume successfully analyzed with ${comparisonResult.engine}!`);
+    }
 
     const fullResult = {
       ...comparisonResult,
@@ -56,6 +76,7 @@ export class ResumeService {
       jobDescriptionTitle: derivedRoleTitle,
       jobDescriptionText,
       extractedResumeText: resumeText,
+      extractedResumeLength: resumeText.length,
       savedToDb: false
     };
 
@@ -69,11 +90,13 @@ export class ResumeService {
           jobDescriptionText,
           score: comparisonResult.score,
           verdict: comparisonResult.verdict,
+          summary: comparisonResult.summary || '',
+          engine: comparisonResult.engine || 'Gemini AI',
           presentSkills: comparisonResult.presentSkills,
           missingSkills: comparisonResult.missingSkills,
           breakdown: comparisonResult.breakdown,
           recommendations: comparisonResult.recommendations,
-          extractedResumeLength: comparisonResult.extractedResumeLength
+          extractedResumeLength: resumeText.length
         });
 
         fullResult.id = savedDoc._id;

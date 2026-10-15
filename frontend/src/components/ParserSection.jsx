@@ -38,9 +38,10 @@ export default function ParserSection({
   const [currentFileMeta, setCurrentFileMeta] = useState(null);
   const [copiedSummary, setCopiedSummary] = useState(false);
 
-  // Backend & MongoDB state
+  // Backend, MongoDB & Gemini AI state
   const [backendConnected, setBackendConnected] = useState(false);
   const [mongoConnected, setMongoConnected] = useState(false);
+  const [geminiConnected, setGeminiConnected] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
@@ -54,14 +55,17 @@ export default function ParserSection({
         if (data && data.status === 'UP') {
           setBackendConnected(true);
           setMongoConnected(Boolean(data.mongoConnected));
+          setGeminiConnected(Boolean(data.geminiConfigured));
         } else {
           setBackendConnected(false);
           setMongoConnected(false);
+          setGeminiConnected(false);
         }
       })
       .catch(() => {
         setBackendConnected(false);
         setMongoConnected(false);
+        setGeminiConnected(false);
       });
   }, []);
 
@@ -381,6 +385,25 @@ export default function ParserSection({
                 <Database size={14} color={mongoConnected ? '#10b981' : '#818cf8'} />
                 <span>DB History</span>
               </button>
+
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.8rem',
+                  padding: '0.48rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: geminiConnected ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                  border: `1px solid ${geminiConnected ? 'rgba(16, 185, 129, 0.35)' : 'rgba(99, 102, 241, 0.35)'}`,
+                  color: geminiConnected ? '#6ee7b7' : '#a5b4fc',
+                  fontWeight: 500
+                }}
+                title={geminiConnected ? "Google Gemini AI model is connected and active" : "Gemini AI ready"}
+              >
+                <Sparkles size={13} color={geminiConnected ? '#10b981' : '#818cf8'} />
+                <span>{geminiConnected ? 'Gemini AI Active' : 'Gemini AI Ready'}</span>
+              </div>
             </div>
 
             {/* Quick Sample Presets */}
@@ -714,6 +737,46 @@ export default function ParserSection({
 
                   {/* Right Column: Skills Present vs Missing */}
                   <div className="skills-main-col">
+                    {/* Executive AI Assessment Card */}
+                    {analysisData.summary && (
+                      <div style={{
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.09) 0%, rgba(139, 92, 246, 0.07) 100%)',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.15rem 1.35rem',
+                        marginBottom: '1.25rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Sparkles size={16} color="#818cf8" />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              AI Executive Assessment
+                            </span>
+                          </div>
+                          {analysisData.engine && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              padding: '0.2rem 0.65rem',
+                              borderRadius: '999px',
+                              background: 'rgba(99, 102, 241, 0.22)',
+                              color: '#a5b4fc',
+                              border: '1px solid rgba(99, 102, 241, 0.4)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontWeight: 500
+                            }}>
+                              <Sparkles size={10} />
+                              {analysisData.engine}
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.92rem', lineHeight: '1.6', color: '#e0e7ff' }}>
+                          {analysisData.summary}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="skills-analysis-grid">
                       {/* Skills Present */}
                       <div className="analysis-panel">
