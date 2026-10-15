@@ -5,13 +5,6 @@ export default function Hero({ onUploadClick, onLoadSample }) {
   return (
     <section className="hero-section">
       <div className="container">
-        <div className="hero-pill-wrapper">
-          <div className="hero-pill">
-            <Sparkles size={14} color="#818cf8" />
-            <span>Zero-Backend Client-Side Architecture — 100% Privacy</span>
-          </div>
-        </div>
-
         <h1 className="hero-title">
           <span className="gradient-text">AI RESUME PARSER</span>
         </h1>

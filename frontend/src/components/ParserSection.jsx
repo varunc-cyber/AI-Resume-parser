@@ -380,30 +380,11 @@ export default function ParserSection({
                   padding: '0.5rem 0.95rem'
                 }}
                 onClick={handleLoadHistory}
-                title="View previous resume comparisons saved in MongoDB"
+                title="View previous resume comparisons"
               >
                 <Database size={14} color={mongoConnected ? '#10b981' : '#818cf8'} />
-                <span>DB History</span>
+                <span>History</span>
               </button>
-
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  fontSize: '0.8rem',
-                  padding: '0.48rem 0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  background: geminiConnected ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-                  border: `1px solid ${geminiConnected ? 'rgba(16, 185, 129, 0.35)' : 'rgba(99, 102, 241, 0.35)'}`,
-                  color: geminiConnected ? '#6ee7b7' : '#a5b4fc',
-                  fontWeight: 500
-                }}
-                title={geminiConnected ? "Google Gemini AI model is connected and active" : "Gemini AI ready"}
-              >
-                <Sparkles size={13} color={geminiConnected ? '#10b981' : '#818cf8'} />
-                <span>{geminiConnected ? 'Gemini AI Active' : 'Gemini AI Ready'}</span>
-              </div>
             </div>
 
             {/* Quick Sample Presets */}
@@ -863,7 +844,7 @@ export default function ParserSection({
                     {analysisData.savedToDb && (
                       <span className="badge-pill badge-success" style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', marginLeft: '0.35rem' }}>
                         <Database size={11} />
-                        <span>Saved to MongoDB</span>
+                        <span>Saved to History</span>
                       </span>
                     )}
                   </div>
@@ -940,7 +921,7 @@ export default function ParserSection({
         </div>
       )}
 
-      {/* MongoDB History Modal */}
+      {/* History Modal */}
       {showHistoryModal && (
         <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
           <div className="modal-content" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
@@ -948,7 +929,7 @@ export default function ParserSection({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Database size={18} color="#818cf8" />
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-                  Recent Resume Comparisons (MongoDB)
+                  Recent Resume Comparisons
                 </h4>
               </div>
               <button 
@@ -962,9 +943,9 @@ export default function ParserSection({
               {historyItems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-secondary)' }}>
                   <Database size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.5 }} />
-                  <p>No comparisons saved in MongoDB yet.</p>
+                  <p>No comparisons saved yet.</p>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Upload a resume and job description to compare and save to MongoDB automatically.
+                    Upload a resume and job description to compare and save automatically.
                   </p>
                 </div>
               ) : (

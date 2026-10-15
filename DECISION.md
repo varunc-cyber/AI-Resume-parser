@@ -11,3 +11,21 @@ I want you to move this react project into frontend folder and build a backend f
 The application should take resume PDF and a JD for comparison, AI part will be added later
  
 backend folder should container server.js, routes folder, controller folder, service folder, config folder, middleware folder and utils.js
+
+Below is the format to connect the Gemini Ai, lets connect and parse the resume and give the score.
+
+curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" \
+  -H 'Content-Type: application/json' \
+  -H 'X-goog-api-key: YOUR_GEMINI_API_KEY' \
+  -X POST \
+  -d '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Explain how AI works in a few words"
+          }
+        ]
+      }
+    ]
+  }'
